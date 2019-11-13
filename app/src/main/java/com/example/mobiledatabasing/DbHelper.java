@@ -1,0 +1,121 @@
+package com.example.mobiledatabasing;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+import androidx.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class DbHelper extends SQLiteOpenHelper {
+
+    public static final String TBL_USERS = "users",
+            TBL_USERS_ID = "id",
+            TBL_USERS_USERNAME = "username",
+            TBL_USERS_PASSWORD = "password",
+            TBL_USERS_FULLNAME = "fullname";
+
+    SQLiteDatabase dbReadable = getReadableDatabase();
+    SQLiteDatabase dbWritable = getWritableDatabase();
+
+    public DbHelper(Context context) {
+        super(context, "DB", null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        String sql_create_users_table = String.format("CREATE TABLE %s (%s INTEGER PRIMARY KEY AUTOINCREMENT, %s TEXT, %s TEXT, %s TEXT)",
+                TBL_USERS, TBL_USERS_ID, TBL_USERS_USERNAME, TBL_USERS_PASSWORD, TBL_USERS_FULLNAME);
+        db.execSQL(sql_create_users_table);
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+
+    }
+
+    public int createUser(HashMap<String, String> map_user) {
+
+        int userID= 0;
+        String sql_check_username = String.format("SELECT * FROM %s WHERE %s = '%s'",
+                TBL_USERS, TBL_USERS_USERNAME, map_user.get(TBL_USERS_USERNAME));
+        Cursor cur = dbReadable.rawQuery(sql_check_username, null);
+        if (cur.moveToNext()) {
+            userID = cur.getInt(cur.getColumnIndex(TBL_USERS_ID));
+        } else {
+            // Insertion of data to database
+            ContentValues val = new ContentValues();
+            val.put(TBL_USERS_USERNAME, map_user.get(TBL_USERS_USERNAME));
+            val.put(TBL_USERS_PASSWORD, map_user.get(TBL_USERS_PASSWORD));
+            val.put(TBL_USERS_FULLNAME, map_user.get(TBL_USERS_FULLNAME));
+            dbWritable.insert(TBL_USERS, null, val);
+        }
+        return userID;
+    }
+
+    public int checkUser(HashMap<String, String> map_user) {
+        String sql = String.format("SELECT * FROM %s WHERE %s = '%s' AND %s = '%s'",
+                TBL_USERS, TBL_USERS_USERNAME, map_user.get(TBL_USERS_USERNAME), TBL_USERS_PASSWORD, map_user.get(TBL_USERS_PASSWORD));
+        Cursor cur = dbReadable.rawQuery(sql, null);
+
+        int userID = 0;
+
+        if (cur.moveToNext())
+        {
+            userID = cur.getInt(cur.getColumnIndex(TBL_USERS_ID));
+        }
+        return userID;
+    }
+
+    public ArrayList<HashMap<String, String>> getAllUsers() {
+        ArrayList<HashMap<String, String>> all_users = new ArrayList();
+        String sql_get_users = String.format("SELECT * FROM %s ORDER BY %s ASC",TBL_USERS, TBL_USERS_FULLNAME);
+
+        Cursor cur = dbReadable.rawQuery(sql_get_users, null);
+        while(cur.moveToNext()){
+            HashMap<String, String> map_user = new HashMap();
+            map_user.put(TBL_USERS_ID, cur.getString(cur.getColumnIndex(TBL_USERS_ID)));
+            map_user.put(TBL_USERS_FULLNAME, cur.getString(cur.getColumnIndex(TBL_USERS_FULLNAME)));
+            map_user.put(TBL_USERS_USERNAME, cur.getString(cur.getColumnIndex(TBL_USERS_USERNAME)));
+            all_users.add(map_user);
+        }
+        cur.close();
+        return all_users;
+    }
+
+    public void deleteUser(int userID) {
+        dbWritable.delete(TBL_USERS, TBL_USERS_ID + "=" +userID, null);
+    }
+
+    public ArrayList<HashMap<String, String>> getSelectUser(int userid) {
+        String sql = "SELECT * FROM " + TBL_USERS + " WHERE " + TBL_USERS_ID+ " = " +userid;
+        Cursor cur = dbReadable.rawQuery(sql, null);
+
+        ArrayList<HashMap<String, String>> select_user = new ArrayList();
+
+        while (cur.moveToNext()){
+            HashMap<String , String> map_user = new HashMap();
+            map_user.put(TBL_USERS_PASSWORD, cur.getString(cur.getColumnIndex(TBL_USERS_PASSWORD)));
+            map_user.put(TBL_USERS_FULLNAME, cur.getString(cur.getColumnIndex(TBL_USERS_FULLNAME)));
+            map_user.put(TBL_USERS_USERNAME, cur.getString(cur.getColumnIndex(TBL_USERS_USERNAME)));
+            select_user.add(map_user);
+
+        }
+        cur.close();
+
+        return select_user;
+    }
+
+    public void updateUser(HashMap<String, String> map_user) {
+        ContentValues val = new ContentValues();
+        val.put(TBL_USERS_USERNAME, map_user.get(TBL_USERS_USERNAME));
+        val.put(TBL_USERS_PASSWORD,map_user.get(TBL_USERS_PASSWORD));
+        val.put(TBL_USERS_FULLNAME, map_user.get(TBL_USERS_FULLNAME));
+
+        dbWritable.update(TBL_USERS, val, TBL_USERS_ID + " = " + map_user.get(TBL_USERS_ID), null);
+    }
+}
